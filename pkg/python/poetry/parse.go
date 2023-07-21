@@ -28,10 +28,22 @@ type Lockfile struct {
 	} `toml:"package"`
 }
 
-type Parser struct{}
+type Parser struct {
+	includeDev bool
+}
 
-func NewParser() types.Parser {
-	return &Parser{}
+type Option func(*Parser)
+
+func WithIncludeDev(p *Parser) {
+	p.includeDev = true
+}
+
+func NewParser(opts ...Option) types.Parser {
+	p := &Parser{}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
 }
 
 func (p *Parser) Parse(r dio.ReadSeekerAt) ([]types.Library, []types.Dependency, error) {
@@ -41,12 +53,12 @@ func (p *Parser) Parse(r dio.ReadSeekerAt) ([]types.Library, []types.Dependency,
 	}
 
 	// Keep all installed versions
-	libVersions := parseVersions(lockfile)
+	libVersions := parseVersions(lockfile, p.includeDev)
 
 	var libs []types.Library
 	var deps []types.Dependency
 	for _, pkg := range lockfile.Packages {
-		if pkg.Category == "dev" {
+		if !p.includeDev && pkg.Category == "dev" {
 			continue
 		}
 
@@ -70,10 +82,10 @@ func (p *Parser) Parse(r dio.ReadSeekerAt) ([]types.Library, []types.Dependency,
 
 // parseVersions stores all installed versions of libraries for use in dependsOn
 // as the dependencies of libraries use version range.
-func parseVersions(lockfile Lockfile) map[string][]string {
+func parseVersions(lockfile Lockfile, includeDev bool) map[string][]string {
 	libVersions := map[string][]string{}
 	for _, pkg := range lockfile.Packages {
-		if pkg.Category == "dev" {
+		if !includeDev && pkg.Category == "dev" {
 			continue
 		}
 		if vers, ok := libVersions[pkg.Name]; ok {

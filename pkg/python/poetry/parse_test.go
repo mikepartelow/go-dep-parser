@@ -13,11 +13,12 @@ import (
 
 func TestParser_Parse(t *testing.T) {
 	tests := []struct {
-		name     string
-		file     string
-		wantLibs []types.Library
-		wantDeps []types.Dependency
-		wantErr  assert.ErrorAssertionFunc
+		name       string
+		file       string
+		includeDev bool
+		wantLibs   []types.Library
+		wantDeps   []types.Dependency
+		wantErr    assert.ErrorAssertionFunc
 	}{
 		{
 			name:     "normal",
@@ -39,6 +40,14 @@ func TestParser_Parse(t *testing.T) {
 			wantDeps: poetryFlaskDeps,
 			wantErr:  assert.NoError,
 		},
+		{
+			name:       "many including dev",
+			file:       "testdata/poetry_many.lock",
+			includeDev: true,
+			wantLibs:   poetryManyIncludingDev,
+			wantDeps:   poetryManyDepsIncludingDev,
+			wantErr:    assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -46,7 +55,7 @@ func TestParser_Parse(t *testing.T) {
 			require.NoError(t, err)
 			defer f.Close()
 
-			p := &Parser{}
+			p := &Parser{includeDev: tt.includeDev}
 			gotLibs, gotDeps, err := p.Parse(f)
 			if !tt.wantErr(t, err, fmt.Sprintf("Parse(%v)", tt.file)) {
 				return
