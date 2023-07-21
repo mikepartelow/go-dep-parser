@@ -34,8 +34,10 @@ type Parser struct {
 
 type Option func(*Parser)
 
-func WithIncludeDev(p *Parser) {
-	p.includeDev = true
+func WithIncludeDev() Option {
+	return func(p *Parser) {
+		p.includeDev = true
+	}
 }
 
 func NewParser(opts ...Option) types.Parser {
